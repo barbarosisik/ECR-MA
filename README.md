@@ -1,121 +1,100 @@
-# The implementation for the Recsys 2024 paper: Towards Empathetic Conversational Recommender System
+# ECR-MA: LLM-Based Empathetic Conversational Recommender Multi-Agent System
 
-## Requirements
+This repository contains the code for a modern, RL-enhanced Empathetic Conversational Recommender (ECR) system, with a focus on **LLM-based response evaluation, multi-head critic training, and reinforcement learning** for improved dialogue quality and recommendation realism.
 
-- python == 3.8.13
-- pytorch == 1.8.1
-- cudatoolkit == 11.1.1
-- transformers == 4.15.0
-- pyg == 2.0.1
-- accelerate == 0.8.0
+## 🚀 Features
 
-## Data
+- **LLM-Based Scoring:** Uses Llama2-Chat to generate fine-grained quality scores for conversational responses (empathy, informativeness, recommendation, engagement, overall).
+- **Multi-Head Critic:** Trains a RoBERTa-based critic to predict multiple quality metrics for dialogue responses.
+- **RL Pipeline:** Integrates PPO-based reinforcement learning to optimize response generation using the critic as a reward signal.
+- **SLURM/Cluster Ready:** Includes scripts for large-scale scoring and training on GPU clusters (ALICE/DS-Lab).
+- **Comprehensive Evaluation:** Scripts for visualization, metric analysis, and benchmark comparison.
 
-The data we used has been uploaded [here](https://drive.google.com/file/d/1fb9kDo8uSRLlwc5c4nUw8DZHR5XOY_l_/view?usp=sharing).
-The downloaded ckpt files should be moved into `src_emo/data/emo_data/`.
+## 📦 Requirements
 
-## Saved Models
+- Python >= 3.8
+- PyTorch >= 1.8
+- CUDA Toolkit >= 11.1
+- transformers >= 4.15
+- accelerate >= 0.8
+- wandb, nltk, pyg, tqdm
 
-We have saved the parameters of our model, all of which have been uploaded [here](https://drive.google.com/file/d/1uBtcqbQByVrrJ1hEwk2dvsAOxuvEgE19/view?usp=sharing).
-The downloaded ckpt files should be moved into `src_emo/data/saved/`.
-
-## Quick-Start
-
-We run all experiments and tune hyperparameters on a GPU with 24GB memory, you can adjust `per_device_train_batch_size` and `per_device_eval_batch_size` according to your GPU, and then the optimization hyperparameters (e.g., `learning_rate`) may also need to be tuned.
-
-### Emotional Semantic Fusion Subtask
-
+Install dependencies:
 ```bash
-cd src_emo 
-cp -r data/emo_data/* data/redial/
-python data/redial/process.py 
-accelerate launch train_pre.py \
---dataset redial \
---num_train_epochs 10 \
---gradient_accumulation_steps 4  \
---per_device_train_batch_size 16 \
---per_device_eval_batch_size 64  \
---num_warmup_steps 1389 \
---max_length 200 \
---prompt_max_length 200  \
---entity_max_length 32  \
---learning_rate 5e-4 \
---seed 42 \
---nei_mer
-
+pip install -r requirements.txt
+python -c "import nltk; nltk.download('punkt')"
 ```
 
-### Emotion-aware Item Recommendation Training
+## 📁 Data & Models
 
+**Note:**  
+- Data and model weights are **not included** in this repository due to size.
+- Download the processed data and model checkpoints from:
+  - [Redial/Emo Data](https://drive.google.com/file/d/1fb9kDo8uSRLlwc5c4nUw8DZHR5XOY_l_/view?usp=sharing)
+  - [Model Checkpoints](https://drive.google.com/file/d/1uBtcqbQByVrrJ1hEwk2dvsAOxuvEgE19/view?usp=sharing)
+- Place data in `src_emo/data/emo_data/` and models in `src_emo/data/saved/`.
+
+## ⚡ Quick Start
+
+### 1. LLM-Based Scoring
+
+Run Llama2-based scoring on your dataset:
 ```bash
-# merge infer results from conversation model of UniCRS
-cd src_emo
-cp -r data/emo_data/* data/redial/
-python data/redial/process_mask.py
-cp -r data/redial/* data/redial_gen/
-python data/redial_gen/merge.py
-accelerate launch train_rec.py   \
---dataset redial_gen   \
---n_prefix_rec 10    \
---num_train_epochs 5   \
---per_device_train_batch_size 16   \
---per_device_eval_batch_size 32   \
---gradient_accumulation_steps 8   \
---num_warmup_steps 530   \
---context_max_length 200   \
---prompt_max_length 200   \
---entity_max_length 32   \
---learning_rate 1e-4   \
---seed 8   \
---like_score 2.0   \
---dislike_score 1.0   \
---notsay_score 0.5    \
---weighted_loss   \
---nei_mer  \
---use_sentiment 
-
+python convert_and_score_full_dataset.py --input <input_file> --output <output_file>
 ```
+- See `score_full_dataset.slurm` for cluster job submission.
 
-### Emotion-aligned Response Generation Training and Inference
+### 2. Critic Training
 
-#### Backbone: DialoGPT
-
+Train the multi-head critic on scored data:
 ```bash
-# merge infer results from Recommend Response Generation
-# train
-cd src_emo
-python data/redial_gen/merge_rec.py
-python imdb_review_entity_filter.py
-python data/redial/process_empthetic.py
-accelerate launch train_emp.py   \
- --dataset redial   \
---num_train_epochs 15    \
---gradient_accumulation_steps 1    \
---ignore_pad_token_for_loss    \
---per_device_train_batch_size 20    \
---per_device_eval_batch_size 64    \
---num_warmup_steps 9965    \
---context_max_length 150    \
---resp_max_length 150    \
---learning_rate 1e-04  
-
-# infer
-accelerate launch infer_emp.py   \
---dataset redial_gen \
---split test \
---per_device_eval_batch_size 256 \
---context_max_length 150 \
---resp_max_length 150
+python src_emo/train_critic_supervised.py --train_data <train.jsonl> --val_data <val.jsonl> --output_dir critic_pretrained
 ```
 
-#### Backbone: Llama 2-Chat
-We use [LLaMA Board](https://github.com/hiyouga/LLaMA-Efficient-Tuning) to fine-tune  Llama 2-Chat.
-```
-Training Data Path: src_emo/data/emo_data/llama_train.json
-Testing Data Path: src_emo/data/emo_data/llama_test.json
+### 3. RL Training
+
+Run RL-enhanced training with PPO:
+```bash
+./run_rl_training.sh
+# or manually:
+accelerate launch src_emo/train_emp_rl.py --dataset redial --use_rl --critic_pretrained_path critic_pretrained/critic_pretrained_final.pth --output_dir models/rl_enhanced_ecr
 ```
 
-## Acknowledgement
+### 4. Evaluation
 
-The code is developed based on [UniCRS](https://github.com/RUCAIBox/UniCRS).
-Any scientific publications that use our codes or dataset should cite our paper as the reference.
+Evaluate models and visualize results:
+```bash
+python eval_critic_visualize.py
+python summarize_critic_evaluation.py
+```
+
+## 📝 Project Structure
+
+```
+ECR-main/
+├── src_emo/                  # Main source code (RL, critic, data processing)
+├── convert_and_score_full_dataset.py
+├── create_quality_labels.py
+├── eval_critic_visualize.py
+├── summarize_critic_evaluation.py
+├── run_rl_training.sh
+├── run_rl_evaluation.sh
+├── score_full_dataset.slurm
+├── README.md
+└── ... (see .gitignore for excluded data/models)
+```
+
+## 📊 Documentation
+
+- See `IMPLEMENTATION_GUIDE.md` and `RL_TRAINING_GUIDE.md` for detailed instructions.
+- `CRITIC_EVALUATION_REPORT.md` and `PROGRESS_REPORT.md` for project progress and evaluation results.
+
+## 📚 Acknowledgements
+
+- Built on top of [UniCRS](https://github.com/RUCAIBox/UniCRS) and the original ECR-main codebase.
+- LLM scoring inspired by recent RecSys and NLP research.
+- For academic use, please cite the original ECR paper and this repository.
+
+---
+
+**For questions or collaboration, open an issue or contact the maintainer.**
