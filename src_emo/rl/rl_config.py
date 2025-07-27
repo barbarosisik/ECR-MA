@@ -46,6 +46,19 @@ class RLConfig:
     eval_frequency: int = 500
     save_frequency: int = 1000
     
+    # Model Parameters
+    context_max_length: int = 150
+    resp_max_length: int = 150
+    max_length: int = 300  # Total max length for context + response
+    
+    # Training Parameters
+    learning_rate: float = 1e-5
+    weight_decay: float = 0.01
+    max_grad_norm: float = 1.0
+    batch_size: int = 8
+    save_steps: int = 1000
+    output_dir: str = "rl_outputs"
+    
     # Device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     
@@ -75,5 +88,14 @@ class RLConfig:
             'agent_cooperation_weight': self.agent_cooperation_weight,
             'eval_frequency': self.eval_frequency,
             'save_frequency': self.save_frequency,
+            'context_max_length': self.context_max_length,
+            'resp_max_length': self.resp_max_length,
+            'max_length': self.max_length,
+            'learning_rate': self.learning_rate,
+            'weight_decay': self.weight_decay,
+            'max_grad_norm': self.max_grad_norm,
+            'batch_size': self.batch_size,
+            'save_steps': self.save_steps,
+            'output_dir': self.output_dir,
             'device': self.device
         } 

@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""
+Recreate Training Results JSON
+Creates a properly formatted training results file
+"""
+
+import json
+import os
+
+# Training results from the output logs
+training_results = {
+    "training_history": {
+        "train_losses": [
+            0.39003164622262515,
+            0.09241156437724986,
+            0.05177575636595961,
+            0.04677155241185415,
+            0.045408929188775204,
+            0.04440746561589616,
+            0.04407705621062113,
+            0.04378742831217115,
+            0.04332220440769874,
+            0.042958684193546925
+        ],
+        "val_losses": [
+            0.052966486332474874,
+            0.045519497193810016,
+            0.04292553214592829,
+            0.042147937501785616,
+            0.04030865264154734,
+            0.04171682569006133,
+            0.03941912211418625,
+            0.03955258805521582,
+            0.039618135745287254,
+            0.03937238102862562
+        ],
+        "train_r2_scores": [
+            -7.8687407167383085,
+            -0.7369875731261291,
+            0.02004724837291283,
+            0.08215633239575382,
+            0.11674615549776657,
+            0.13820115425584845,
+            0.14045894619330013,
+            0.14368603497764798,
+            0.15969162630721667,
+            0.17088402204815167
+        ],
+        "val_r2_scores": [
+            -0.071091651299658,
+            0.08900135114026675,
+            0.12900882513253753,
+            0.14584631671991055,
+            0.19561512920158297,
+            0.14137544491597287,
+            0.21716000205575303,
+            0.2160131162824449,
+            0.20627209665642154,
+            0.21322663224752925
+        ]
+    },
+    "test_results": {
+        "mse": 0.0171,
+        "mae": 0.0975,
+        "r2": 0.2160,
+        "llama2_r2": 0.6425,
+        "mistral7b_r2": 0.6425
+    },
+    "config": {
+        "critic_model_name": "roberta-base",
+        "critic_hidden_size": 768,
+        "critic_dropout": 0.1,
+        "device": "cuda"
+    }
+}
+
+# Save to file
+output_dir = "critic_pretrained_dual_model"
+os.makedirs(output_dir, exist_ok=True)
+
+with open(os.path.join(output_dir, "training_results.json"), "w") as f:
+    json.dump(training_results, f, indent=2)
+
+print("✅ Training results JSON created successfully!")
+print(f"File saved to: {output_dir}/training_results.json") 

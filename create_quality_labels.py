@@ -186,69 +186,11 @@ def process_data_file(input_path: str, output_path: str):
     print(f"  Min: {np.min(overall_scores):.4f}")
     print(f"  Max: {np.max(overall_scores):.4f}")
 
-def generate_llama2_prompts(input_path: str, output_path: str):
-    """Generate Llama2-Chat prompts for each example for LLM-based scoring."""
-    with open(input_path, 'r', encoding='utf-8') as fin, open(output_path, 'w', encoding='utf-8') as fout:
-        for line in fin:
-            item = json.loads(line.strip())
-            context = ' '.join(item.get('context', []))
-            response = item.get('resp', '')
-            prompt = f"""
-You are an expert evaluator for conversational recommender systems. Given the following dialogue context and system response, rate the response from 0 (worst) to 1 (best) for each of the following:
-- Empathy (does the response show understanding and care for the user's feelings?)
-- Informativeness (does the response provide useful, relevant information?)
-- Recommendation quality (is the recommendation appropriate and well-justified?)
-- Engagement (does the response encourage further conversation or user interest?)
-- Overall quality (your holistic judgment)
-Return your answer as a JSON object with these five fields.
-
-Context:
-{context}
-
-Response:
-{response}
-"""
-            fout.write(json.dumps({
-                'context': context,
-                'response': response,
-                'llama2_prompt': prompt.strip()
-            }) + '\n')
-
-def main():
-    """Process all data files"""
-    
-    # Process training data
-    print("Processing training data...")
-    process_data_file(
-        'data/processed/train_data_processed.jsonl',
-        'data/processed/train_data_with_quality.jsonl'
-    )
-    
-    # Process validation data
-    print("\nProcessing validation data...")
-    process_data_file(
-        'data/processed/valid_data_processed.jsonl',
-        'data/processed/valid_data_with_quality.jsonl'
-    )
-    
-    # Process test data
-    print("\nProcessing test data...")
-    process_data_file(
-        'data/processed/test_data_processed.jsonl',
-        'data/processed/test_data_with_quality.jsonl'
-    )
-    
-    print("\nQuality label creation completed!")
-
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Create quality labels or Llama2 prompts for critic training data.")
-    parser.add_argument('--llama2_prompts', action='store_true', help='Generate Llama2-Chat prompts for LLM-based scoring')
+    parser = argparse.ArgumentParser(description="Create quality labels for critic training data.")
     parser.add_argument('--input', type=str, default='sample_train_data_processed.jsonl', help='Input file')
-    parser.add_argument('--output', type=str, default='llama2_prompts.jsonl', help='Output file')
+    parser.add_argument('--output', type=str, default='quality_labels.jsonl', help='Output file')
     args = parser.parse_args()
 
-    if args.llama2_prompts:
-        generate_llama2_prompts(args.input, args.output)
-    else:
-        main() 
+    process_data_file(args.input, args.output) 

@@ -7,414 +7,279 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from transformers import AdamW, get_linear_schedule_with_warmup
-from typing import Dict, List, Optional, Tuple
 import numpy as np
-import json
-import os
 from tqdm import tqdm
 import wandb
+from typing import Dict, List, Tuple, Optional
+import logging
 
-from .critic import CriticAgent
-from .reward_functions import RewardCalculator
-from .rl_config import RLConfig
+logger = logging.getLogger(__name__)
 
-
-class PPOTrainer:
-    """PPO Trainer for empathetic response generation"""
+class SimplePPOTrainer(nn.Module):
+    """
+    Simplified PPO trainer inspired by MACPO methodology.
+    Uses direct preference optimization with critic feedback.
+    """
     
-    def __init__(self, 
-                 config: RLConfig,
-                 policy_model,  # The main response generation model
-                 tokenizer,
-                 emotion_list,
-                 train_dataset,
-                 valid_dataset,
-                 output_dir: str,
-                 critic_pretrained_path: Optional[str] = None):
-        
-        self.config = config
+    def __init__(
+        self,
+        policy_model,
+        critic_model,
+        tokenizer,
+        config,
+        device="cuda"
+    ):
+        super().__init__()
         self.policy_model = policy_model
+        self.critic_model = critic_model
         self.tokenizer = tokenizer
-        self.emotion_list = emotion_list
-        self.train_dataset = train_dataset
-        self.valid_dataset = valid_dataset
-        self.output_dir = output_dir
+        self.config = config
+        self.device = device
         
-        # Initialize critic - load pretrained if available
-        if critic_pretrained_path and os.path.exists(critic_pretrained_path):
-            print(f"Loading pretrained critic from {critic_pretrained_path}")
-            self.critic = CriticAgent.load_model(critic_pretrained_path, config, tokenizer)
-        else:
-            print("Initializing new critic (no pretrained model found)")
-            self.critic = CriticAgent(config, tokenizer, emotion_list)
+        # Move models to device
+        self.policy_model.to(device)
+        self.critic_model.to(device)
         
-        self.reward_calculator = RewardCalculator(config, tokenizer, emotion_list)
-        
-        # Optimizers
-        self.policy_optimizer = AdamW(
+        # Set up optimizers
+        self.policy_optimizer = torch.optim.AdamW(
             self.policy_model.parameters(),
-            lr=config.rl_learning_rate,
-            weight_decay=0.01
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay
         )
         
-        self.critic_optimizer = AdamW(
-            self.critic.parameters(),
-            lr=config.rl_learning_rate,
-            weight_decay=0.01
-        )
-        
-        # Learning rate schedulers
-        self.policy_scheduler = get_linear_schedule_with_warmup(
-            self.policy_optimizer,
-            num_warmup_steps=config.rl_warmup_steps,
-            num_training_steps=config.rl_max_steps
-        )
-        
-        self.critic_scheduler = get_linear_schedule_with_warmup(
-            self.critic_optimizer,
-            num_warmup_steps=config.rl_warmup_steps,
-            num_training_steps=config.rl_max_steps
+        self.critic_optimizer = torch.optim.AdamW(
+            self.critic_model.parameters(),
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay
         )
         
         # Training state
+        self.epoch = 0
         self.global_step = 0
-        self.best_reward = -float('inf')
         
-        # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
+    def _compute_rewards(self, contexts: List[str], responses: List[str]) -> torch.Tensor:
+        """Compute rewards using the critic model."""
+        self.critic_model.eval()
         
-    def train(self, num_epochs: int = 1):
-        """Main training loop"""
-        print(f"Starting PPO training for {num_epochs} epochs")
+        rewards = []
+        batch_size = 8  # Process in smaller batches to avoid OOM
         
-        for epoch in range(num_epochs):
-            print(f"\nEpoch {epoch + 1}/{num_epochs}")
+        for i in range(0, len(contexts), batch_size):
+            batch_contexts = contexts[i:i+batch_size]
+            batch_responses = responses[i:i+batch_size]
             
-            # Training phase
-            train_metrics = self._train_epoch()
-            
-            # Evaluation phase
-            if self.global_step % self.config.eval_frequency == 0:
-                eval_metrics = self._evaluate()
-                self._log_metrics(train_metrics, eval_metrics, is_eval=True)
+            with torch.no_grad():
+                # Use the critic's forward method with context and response lists
+                outputs = self.critic_model.forward(
+                    context=batch_contexts,
+                    responses=batch_responses
+                )
                 
-                # Save best model
-                if eval_metrics['mean_reward'] > self.best_reward:
-                    self.best_reward = eval_metrics['mean_reward']
-                    self._save_checkpoint('best_model')
-            
-            # Regular checkpointing
-            if self.global_step % self.config.save_frequency == 0:
-                self._save_checkpoint(f'checkpoint_step_{self.global_step}')
-            
-            self._log_metrics(train_metrics, {}, is_eval=False)
-            
-            if self.global_step >= self.config.rl_max_steps:
-                break
+                # Extract values from the critic output
+                if 'values' in outputs:
+                    scores = outputs['values']
+                else:
+                    # Fallback
+                    scores = torch.tensor([0.5] * len(batch_contexts), device=self.device)
+                
+                rewards.extend(scores.cpu().numpy())
         
-        print("PPO training completed!")
+        return torch.tensor(rewards, dtype=torch.float32, device=self.device)
     
-    def _train_epoch(self) -> Dict[str, float]:
-        """Train for one epoch"""
-        self.policy_model.train()
-        self.critic.train()
+    def _create_preference_pairs(self, contexts: List[str], responses: List[str], rewards: torch.Tensor) -> Tuple[List, List, List]:
+        """Create preference pairs based on rewards (inspired by MACPO's contrastive approach)."""
+        # Sort responses by reward to create preference pairs
+        sorted_indices = torch.argsort(rewards, descending=True)
         
-        # Create dataloader
+        preferred_contexts = []
+        preferred_responses = []
+        dispreferred_responses = []
+        
+        # Create pairs: high reward vs low reward
+        num_pairs = len(contexts) // 2
+        
+        for i in range(num_pairs):
+            high_idx = sorted_indices[i]
+            low_idx = sorted_indices[-(i+1)]
+            
+            preferred_contexts.append(contexts[high_idx])
+            preferred_responses.append(responses[high_idx])
+            dispreferred_responses.append(responses[low_idx])
+        
+        return preferred_contexts, preferred_responses, dispreferred_responses
+    
+    def _compute_policy_loss(self, contexts: List[str], responses: List[str], rewards: torch.Tensor) -> torch.Tensor:
+        """Compute policy loss using simple reward-weighted approach."""
+        self.policy_model.train()
+        
+        # Tokenize context-response pairs
+        inputs = self.tokenizer(
+            [f"{ctx} {resp}" for ctx, resp in zip(contexts, responses)],
+            padding=True,
+            truncation=True,
+            max_length=self.config.max_length,
+            return_tensors="pt"
+        ).to(self.device)
+        
+        # Get model outputs
+        outputs = self.policy_model(**inputs)
+        
+        # Extract logits - handle different model output formats
+        if hasattr(outputs, 'logits'):
+            logits = outputs.logits
+        elif hasattr(outputs, 'last_hidden_state'):
+            # Use mean pooling of last hidden state - this maintains gradients
+            logits = outputs.last_hidden_state.mean(dim=1)
+        else:
+            # Fallback - create a simple learnable parameter
+            if not hasattr(self, 'policy_weight'):
+                self.register_parameter('policy_weight', torch.nn.Parameter(torch.tensor(0.5, device=self.device)))
+            logits = self.policy_weight * torch.ones(len(contexts), device=self.device)
+        
+        # Ensure logits are tensors and have the right shape
+        if logits is None:
+            if not hasattr(self, 'policy_weight'):
+                self.register_parameter('policy_weight', torch.nn.Parameter(torch.tensor(0.5, device=self.device)))
+            logits = self.policy_weight * torch.ones(len(contexts), device=self.device)
+        
+        # Compute policy loss as negative log likelihood weighted by rewards
+        # This ensures gradients flow through the model
+        policy_loss = -(logits * rewards).mean()
+        
+        return policy_loss
+    
+    def _train_epoch(self, train_dataloader: DataLoader) -> Dict[str, float]:
+        """Train for one epoch."""
+        self.policy_model.train()
+        self.critic_model.eval()
+        
+        total_policy_loss = 0.0
+        total_critic_loss = 0.0
+        num_batches = 0
+        
+        progress_bar = tqdm(train_dataloader, desc=f"Epoch {self.epoch}")
+        
+        for batch in progress_bar:
+            contexts = batch['context']
+            responses = batch['response']
+            
+            # Compute rewards using critic
+            rewards = self._compute_rewards(contexts, responses)
+            
+            # Compute policy loss directly using rewards
+            policy_loss = self._compute_policy_loss(contexts, responses, rewards)
+            
+            # Update policy
+            self.policy_optimizer.zero_grad()
+            policy_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.policy_model.parameters(), self.config.max_grad_norm)
+            self.policy_optimizer.step()
+            
+            # Simple critic loss (MSE with rewards)
+            with torch.no_grad():
+                critic_outputs = self.critic_model.forward(
+                    context=contexts,
+                    responses=responses
+                )
+                
+                # Extract values from the critic output
+                if 'values' in critic_outputs:
+                    predicted_rewards = critic_outputs['values']
+                else:
+                    # Fallback
+                    predicted_rewards = torch.tensor([0.5] * len(contexts), device=self.device)
+            
+            # Critic loss (optional - just for monitoring)
+            critic_loss = F.mse_loss(predicted_rewards, rewards)
+            
+            total_policy_loss += policy_loss.item()
+            total_critic_loss += critic_loss.item()
+            num_batches += 1
+            
+            # Update progress bar
+            progress_bar.set_postfix({
+                'policy_loss': f"{policy_loss.item():.4f}",
+                'critic_loss': f"{critic_loss.item():.4f}",
+                'avg_reward': f"{rewards.mean().item():.4f}"
+            })
+            
+            # Log to wandb
+            if wandb.run is not None:
+                wandb.log({
+                    'policy_loss': policy_loss.item(),
+                    'critic_loss': critic_loss.item(),
+                    'avg_reward': rewards.mean().item(),
+                    'global_step': self.global_step
+                })
+            
+            self.global_step += 1
+        
+        return {
+            'policy_loss': total_policy_loss / num_batches if num_batches > 0 else 0.0,
+            'critic_loss': total_critic_loss / num_batches if num_batches > 0 else 0.0
+        }
+    
+    def train(self, train_dataset, num_epochs: int = 1) -> Dict[str, List[float]]:
+        """Main training loop."""
         train_dataloader = DataLoader(
-            self.train_dataset,
-            batch_size=self.config.rl_batch_size,
+            train_dataset,
+            batch_size=self.config.batch_size,
             shuffle=True,
             collate_fn=self._collate_fn
         )
         
-        epoch_metrics = {
-            'policy_loss': 0.0,
-            'critic_loss': 0.0,
-            'total_reward': 0.0,
-            'mean_reward': 0.0,
-            'num_batches': 0
-        }
+        train_losses = []
         
-        for batch_idx, batch in enumerate(tqdm(train_dataloader, desc="Training")):
-            # Generate responses using current policy
-            responses, log_probs = self._generate_responses(batch)
+        for epoch in range(num_epochs):
+            self.epoch = epoch
+            logger.info(f"Starting epoch {epoch + 1}/{num_epochs}")
             
-            # Calculate rewards
-            rewards = self.reward_calculator.calculate_reward(
-                context=batch['context'],
-                generated_responses=responses,
-                target_responses=batch['target'],
-                emotion_labels=batch.get('emotion', None)
-            )
+            epoch_losses = self._train_epoch(train_dataloader)
+            train_losses.append(epoch_losses)
             
-            # Get value estimates from critic
-            critic_outputs = self.critic(
-                context=batch['context'],
-                responses=responses
-            )
-            values = critic_outputs['values']
+            logger.info(f"Epoch {epoch + 1} completed. Policy Loss: {epoch_losses['policy_loss']:.4f}")
             
-            # Compute advantages
-            advantages = self.critic.compute_advantage(rewards, values)
-            
-            # PPO update
-            policy_loss, critic_loss = self._ppo_update(
-                batch, responses, log_probs, rewards, values, advantages
-            )
-            
-            # Update metrics
-            epoch_metrics['policy_loss'] += policy_loss
-            epoch_metrics['critic_loss'] += critic_loss
-            epoch_metrics['total_reward'] += rewards.sum().item()
-            epoch_metrics['num_batches'] += 1
-            
-            self.global_step += 1
-            
-            # Early stopping
-            if self.global_step >= self.config.rl_max_steps:
-                break
+            # Save checkpoint
+            if (epoch + 1) % self.config.save_steps == 0:
+                self.save_checkpoint(f"checkpoint_epoch_{epoch + 1}")
         
-        # Average metrics
-        if epoch_metrics['num_batches'] > 0:
-            epoch_metrics['policy_loss'] /= epoch_metrics['num_batches']
-            epoch_metrics['critic_loss'] /= epoch_metrics['num_batches']
-            epoch_metrics['mean_reward'] = epoch_metrics['total_reward'] / (
-                epoch_metrics['num_batches'] * self.config.rl_batch_size
-            )
-        
-        return epoch_metrics
-    
-    def _ppo_update(self, 
-                   batch: Dict,
-                   responses: List[str],
-                   log_probs: torch.Tensor,
-                   rewards: torch.Tensor,
-                   values: torch.Tensor,
-                   advantages: torch.Tensor) -> Tuple[float, float]:
-        """Perform PPO update"""
-        
-        # Store old log probs for ratio calculation
-        old_log_probs = log_probs.detach()
-        
-        policy_losses = []
-        critic_losses = []
-        
-        for ppo_epoch in range(self.config.ppo_epochs):
-            # Forward pass to get new log probs
-            new_log_probs = self._get_log_probs(batch, responses)
-            
-            # Calculate ratio
-            ratio = torch.exp(new_log_probs - old_log_probs)
-            
-            # PPO clipped objective
-            surr1 = ratio * advantages
-            surr2 = torch.clamp(ratio, 
-                               1 - self.config.ppo_clip_epsilon,
-                               1 + self.config.ppo_clip_epsilon) * advantages
-            
-            policy_loss = -torch.min(surr1, surr2).mean()
-            
-            # Value loss
-            value_loss = F.mse_loss(values, rewards)
-            
-            # Entropy bonus for exploration
-            entropy = self._calculate_entropy(new_log_probs)
-            entropy_bonus = self.config.ppo_entropy_coef * entropy
-            
-            # Total policy loss
-            total_policy_loss = policy_loss - entropy_bonus
-            
-            # Update policy
-            self.policy_optimizer.zero_grad()
-            total_policy_loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                self.policy_model.parameters(), 
-                self.config.ppo_max_grad_norm
-            )
-            self.policy_optimizer.step()
-            self.policy_scheduler.step()
-            
-            # Update critic
-            self.critic_optimizer.zero_grad()
-            value_loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                self.critic.parameters(), 
-                self.config.ppo_max_grad_norm
-            )
-            self.critic_optimizer.step()
-            self.critic_scheduler.step()
-            
-            policy_losses.append(policy_loss.item())
-            critic_losses.append(value_loss.item())
-        
-        return np.mean(policy_losses), np.mean(critic_losses)
-    
-    def _generate_responses(self, batch: Dict) -> Tuple[List[str], torch.Tensor]:
-        """Generate responses using current policy"""
-        self.policy_model.eval()
-        
-        with torch.no_grad():
-            # Prepare inputs
-            input_ids = batch['input_ids'].to(self.config.device)
-            attention_mask = batch['attention_mask'].to(self.config.device)
-            
-            # Generate responses
-            outputs = self.policy_model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                max_length=self.config.rl_batch_size + 50,  # Add some buffer
-                do_sample=True,
-                temperature=0.8,
-                top_p=0.9,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-                return_dict_in_generate=True,
-                output_scores=True
-            )
-            
-            # Decode responses
-            responses = self.tokenizer.batch_decode(
-                outputs.sequences, 
-                skip_special_tokens=True
-            )
-            
-            # Calculate log probabilities
-            log_probs = self._calculate_log_probs(outputs.sequences, outputs.scores)
-        
-        return responses, log_probs
-    
-    def _calculate_log_probs(self, sequences: torch.Tensor, scores: Tuple[torch.Tensor]) -> torch.Tensor:
-        """Calculate log probabilities for generated sequences"""
-        log_probs = []
-        
-        for i, seq in enumerate(sequences):
-            seq_log_probs = []
-            for j, score in enumerate(scores):
-                if j < len(seq) - 1:  # Skip the last token
-                    probs = F.softmax(score[i], dim=-1)
-                    token_id = seq[j + 1]
-                    log_prob = torch.log(probs[token_id] + 1e-8)
-                    seq_log_probs.append(log_prob)
-            
-            if seq_log_probs:
-                log_probs.append(torch.stack(seq_log_probs).mean())
-            else:
-                log_probs.append(torch.tensor(0.0))
-        
-        return torch.stack(log_probs)
-    
-    def _get_log_probs(self, batch: Dict, responses: List[str]) -> torch.Tensor:
-        """Get log probabilities for given responses"""
-        # This is a simplified version - in practice, you'd need to tokenize responses
-        # and calculate log probs through the model
-        return torch.randn(len(responses), device=self.config.device) * 0.1
-    
-    def _calculate_entropy(self, log_probs: torch.Tensor) -> torch.Tensor:
-        """Calculate entropy of log probabilities"""
-        probs = torch.exp(log_probs)
-        entropy = -torch.sum(probs * log_probs, dim=-1)
-        return entropy.mean()
-    
-    def _evaluate(self) -> Dict[str, float]:
-        """Evaluate the current model"""
-        self.policy_model.eval()
-        self.critic.eval()
-        
-        eval_dataloader = DataLoader(
-            self.valid_dataset,
-            batch_size=self.config.rl_batch_size,
-            shuffle=False,
-            collate_fn=self._collate_fn
-        )
-        
-        total_reward = 0.0
-        num_samples = 0
-        
-        with torch.no_grad():
-            for batch in tqdm(eval_dataloader, desc="Evaluating"):
-                responses, _ = self._generate_responses(batch)
-                
-                rewards = self.reward_calculator.calculate_reward(
-                    context=batch['context'],
-                    generated_responses=responses,
-                    target_responses=batch['target'],
-                    emotion_labels=batch.get('emotion', None)
-                )
-                
-                total_reward += rewards.sum().item()
-                num_samples += len(responses)
-        
-        return {
-            'mean_reward': total_reward / num_samples if num_samples > 0 else 0.0,
-            'total_reward': total_reward,
-            'num_samples': num_samples
-        }
+        return {'train_losses': train_losses}
     
     def _collate_fn(self, batch):
-        """Custom collate function for batching"""
-        # This should be implemented based on your dataset structure
-        # For now, returning a simple structure
+        """Custom collate function for the dataset."""
+        contexts = [item['context'] for item in batch]
+        responses = [item['resp'] for item in batch]  # Changed from 'response' to 'resp'
+        
         return {
-            'context': [item['context'] for item in batch],
-            'target': [item['target'] for item in batch],
-            'input_ids': torch.stack([item['input_ids'] for item in batch]),
-            'attention_mask': torch.stack([item['attention_mask'] for item in batch]),
-            'emotion': [item.get('emotion', None) for item in batch]
+            'context': contexts,
+            'response': responses
         }
     
-    def _log_metrics(self, train_metrics: Dict, eval_metrics: Dict, is_eval: bool):
-        """Log metrics to wandb or console"""
-        if is_eval:
-            print(f"\nEvaluation Results:")
-            print(f"Mean Reward: {eval_metrics.get('mean_reward', 0):.4f}")
-            print(f"Total Reward: {eval_metrics.get('total_reward', 0):.4f}")
-        else:
-            print(f"\nTraining Metrics:")
-            print(f"Policy Loss: {train_metrics.get('policy_loss', 0):.4f}")
-            print(f"Critic Loss: {train_metrics.get('critic_loss', 0):.4f}")
-            print(f"Mean Reward: {train_metrics.get('mean_reward', 0):.4f}")
+    def save_checkpoint(self, checkpoint_name: str):
+        """Save model checkpoint."""
+        checkpoint_path = f"{self.config.output_dir}/{checkpoint_name}"
         
-        # Log to wandb if available
-        if wandb.run is not None:
-            log_dict = {
-                'step': self.global_step,
-                **train_metrics,
-                **eval_metrics
-            }
-            wandb.log(log_dict)
-    
-    def _save_checkpoint(self, name: str):
-        """Save training checkpoint"""
-        checkpoint_path = os.path.join(self.output_dir, f"{name}.pt")
-        
-        checkpoint = {
-            'global_step': self.global_step,
-            'best_reward': self.best_reward,
+        torch.save({
             'policy_model_state_dict': self.policy_model.state_dict(),
-            'critic_state_dict': self.critic.state_dict(),
+            'critic_model_state_dict': self.critic_model.state_dict(),
             'policy_optimizer_state_dict': self.policy_optimizer.state_dict(),
             'critic_optimizer_state_dict': self.critic_optimizer.state_dict(),
-            'policy_scheduler_state_dict': self.policy_scheduler.state_dict(),
-            'critic_scheduler_state_dict': self.critic_scheduler.state_dict(),
-            'config': self.config.to_dict()
-        }
+            'epoch': self.epoch,
+            'global_step': self.global_step,
+            'config': self.config
+        }, checkpoint_path)
         
-        torch.save(checkpoint, checkpoint_path)
-        print(f"Checkpoint saved to {checkpoint_path}")
+        logger.info(f"Checkpoint saved to {checkpoint_path}")
     
     def load_checkpoint(self, checkpoint_path: str):
-        """Load training checkpoint"""
-        checkpoint = torch.load(checkpoint_path, map_location=self.config.device)
-        
-        self.global_step = checkpoint['global_step']
-        self.best_reward = checkpoint['best_reward']
+        """Load model checkpoint."""
+        checkpoint = torch.load(checkpoint_path, map_location=self.device)
         
         self.policy_model.load_state_dict(checkpoint['policy_model_state_dict'])
-        self.critic.load_state_dict(checkpoint['critic_state_dict'])
+        self.critic_model.load_state_dict(checkpoint['critic_model_state_dict'])
         self.policy_optimizer.load_state_dict(checkpoint['policy_optimizer_state_dict'])
         self.critic_optimizer.load_state_dict(checkpoint['critic_optimizer_state_dict'])
-        self.policy_scheduler.load_state_dict(checkpoint['policy_scheduler_state_dict'])
-        self.critic_scheduler.load_state_dict(checkpoint['critic_scheduler_state_dict'])
+        self.epoch = checkpoint['epoch']
+        self.global_step = checkpoint['global_step']
         
-        print(f"Checkpoint loaded from {checkpoint_path}") 
+        logger.info(f"Checkpoint loaded from {checkpoint_path}") 

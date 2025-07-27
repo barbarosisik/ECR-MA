@@ -97,8 +97,7 @@ if __name__ == '__main__':
             torch.backends.cudnn.deterministic = True
 
     # Initialize the accelerator. We will let the accelerator handle device placement for us.
-    accelerator = Accelerator(device_placement=False, mixed_precision='fp16' if args.fp16 else 'no')
-    #accelerator = Accelerator(device_placement=False, fp16=args.fp16)
+    accelerator = Accelerator(mixed_precision='fp16' if args.fp16 else 'no')
     device = accelerator.device
 
     # Make one log on every process with the configuration for debugging.
@@ -293,7 +292,7 @@ if __name__ == '__main__':
                 nei_mer = args.nei_mer
             )
             batch['context']['prompt_embeds'] = prompt_embeds
-            batch['context']['entity_embeds'] = prompt_encoder.get_entity_embeds()
+            batch['context']['entity_embeds'] = prompt_encoder.module.get_entity_embeds() if hasattr(prompt_encoder, "module") else prompt_encoder.get_entity_embeds()
 
             loss = model(**batch['context'], rec=True, copy_logit = copy_logit, copy_w = args.copy_w).rec_loss / args.gradient_accumulation_steps
             logger.info(loss)
@@ -354,7 +353,7 @@ if __name__ == '__main__':
                 nei_mer = args.nei_mer
                 )
                 batch['context']['prompt_embeds'] = prompt_embeds
-                batch['context']['entity_embeds'] = prompt_encoder.get_entity_embeds()
+                batch['context']['entity_embeds'] = prompt_encoder.module.get_entity_embeds() if hasattr(prompt_encoder, "module") else prompt_encoder.get_entity_embeds()
 
                 outputs = model(**batch['context'], rec=True, copy_logit = copy_logit, copy_w = args.copy_w)
                 valid_loss.append(float(outputs.rec_loss))
@@ -401,7 +400,7 @@ if __name__ == '__main__':
                 nei_mer = args.nei_mer
                 )
                 batch['context']['prompt_embeds'] = prompt_embeds
-                batch['context']['entity_embeds'] = prompt_encoder.get_entity_embeds()
+                batch['context']['entity_embeds'] = prompt_encoder.module.get_entity_embeds() if hasattr(prompt_encoder, "module") else prompt_encoder.get_entity_embeds()
 
                 outputs = model(**batch['context'], rec=True, copy_logit = copy_logit, copy_w = args.copy_w)
                 test_loss.append(float(outputs.rec_loss))

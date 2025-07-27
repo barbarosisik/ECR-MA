@@ -129,8 +129,8 @@ class KGPrompt(nn.Module):
 
     def get_entity_embeds(self):
         node_embeds = self.node_embeds
-        entity_embeds = self.kg_encoder(node_embeds, self.edge_index) + node_embeds # !!?
-        #entity_embeds = self.kg_encoder(node_embeds, self.edge_index, self.edge_type) + node_embeds
+        # entity_embeds = self.kg_encoder(node_embeds, self.edge_index) + node_embeds # !!?
+        entity_embeds = self.kg_encoder(node_embeds, self.edge_index, self.edge_type) + node_embeds
         entity_embeds = self.entity_proj1(entity_embeds) + entity_embeds
         entity_embeds = self.entity_proj2(entity_embeds)
         return entity_embeds

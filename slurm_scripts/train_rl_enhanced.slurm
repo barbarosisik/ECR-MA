@@ -7,6 +7,9 @@
 #SBATCH --output=/data1/s3905993/slurm_outputs/rl_training_%j.out
 #SBATCH --error=/data1/s3905993/slurm_outputs/rl_training_%j.err
 
+# === LATEST RUN: Model saving fix and checkpointing enabled ===
+# This run is for 1 epoch to test model saving and checkpointing.
+
 # Exit on any error
 set -e
 
@@ -51,18 +54,18 @@ check_file() {
 }
 
 check_file "src_emo/train_emp_rl.py"
-check_file "critic_pretrained/critic_pretrained_final.pth"
+check_file "critic_pretrained_dual_model/critic_final.pth"
 
-echo "=== STARTING RL-ENHANCED TRAINING ==="
+echo "=== STARTING RL-ENHANCED TRAINING WITH IMPROVED CRITIC ==="
 
 # Create output directory
-mkdir -p ./models/rl_enhanced_ecr
+mkdir -p ./models/rl_enhanced_ecr_improved
 
-# Run RL-enhanced training
+# Run RL-enhanced training with improved critic
 python src_emo/train_emp_rl.py \
     --dataset redial \
     --use_rl \
-    --critic_pretrained_path ./critic_pretrained/critic_pretrained_final.pth \
+    --critic_pretrained_path ./critic_pretrained_dual_model/critic_final.pth \
     --context_max_length 150 \
     --resp_max_length 150 \
     --rl_learning_rate 1e-5 \
@@ -74,7 +77,10 @@ python src_emo/train_emp_rl.py \
     --distinct_weight 0.5 \
     --ppo_clip_epsilon 0.2 \
     --ppo_epochs 4 \
-    --output_dir ./models/rl_enhanced_ecr
+    --num_train_epochs 1 \
+    --output_dir ./models/rl_enhanced_ecr_improved
+
+# Note: --num_train_epochs 1 ensures only 1 epoch is run for this test.
 
 echo "=== RL-ENHANCED TRAINING COMPLETED ==="
-echo "Check output in: ./models/rl_enhanced_ecr/" 
+echo "Check output in: ./models/rl_enhanced_ecr_improved/" 

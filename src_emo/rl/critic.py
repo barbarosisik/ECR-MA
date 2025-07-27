@@ -224,6 +224,17 @@ class CriticAgent(nn.Module):
     def load_model(cls, path: str, config, tokenizer):
         """Load the critic model"""
         checkpoint = torch.load(path, map_location=config.device)
-        model = cls(config, tokenizer, checkpoint['emotion_list'])
-        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # Handle different checkpoint formats
+        if isinstance(checkpoint, dict) and 'emotion_list' in checkpoint:
+            # Full checkpoint with metadata
+            emotion_list = checkpoint['emotion_list']
+            model = cls(config, tokenizer, emotion_list)
+            model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            # Just state dict - use default emotion list
+            emotion_list = ['happy', 'sad', 'angry', 'neutral']
+            model = cls(config, tokenizer, emotion_list)
+            model.load_state_dict(checkpoint)
+        
         return model 

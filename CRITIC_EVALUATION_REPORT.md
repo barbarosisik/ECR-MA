@@ -27,11 +27,14 @@ This report summarizes the training and evaluation of a multi-head critic model 
 - **Batch Size**: 4
 - **Optimizer**: Adam with linear warmup
 
-## Current Status: UPGRADING TO FULL DATASET
+## Current Status: UPGRADING TO DUAL-MODEL DATASET
 
 - **Real Dataset**: `ECRHMAS/data/redial_gen/train_data_processed.jsonl` (56,355 samples)
-- **New Scoring Pipeline**: Running Llama2-Chat on full dataset to generate quality scores
-- **Expected Output**: `llama2_scored_full_dataset.jsonl` with 6 quality metrics per sample
+- **Dual-Model Scoring Pipeline**: 
+  - ✅ **Llama2-Chat**: `llama2_scored_ultra_fast_merged_1_3.jsonl` (15,743 samples)
+  - ✅ **Mistral7B-Instruct**: `mistral7b_scored_ultra_fast_merged_1_3.jsonl` (16,716 samples)
+- **Expected Output**: Combined dual-model dataset with both `llama2_scores` and `mistral7b_scores` fields
+- **Agent Training Focus**: **ONLY CRITIC AGENT** needs training (main ECR model already trained)
 
 ## Evaluation Results
 
@@ -100,25 +103,32 @@ The evaluation produced 5 comprehensive visualization plots:
 
 ## Next Steps
 
-1. **✅ Data Collection**: **IN PROGRESS** - Running Llama2-Chat scoring on full dataset (56K samples)
-2. **🔄 Model Retraining**: **PENDING** - Will retrain critic on new full dataset once scoring completes
-3. **⏳ RL Integration**: **PENDING** - Will integrate improved critic into RL training loop
-4. **⏳ End-to-End Evaluation**: **PENDING** - Will test complete ECR system with improved critic
+1. **✅ Data Collection**: **COMPLETED** - Dual-model scoring (Llama2 + Mistral7B) completed
+2. **✅ Dataset Merging**: **COMPLETED** - Both datasets successfully merged
+3. **🔄 Critic Agent Training**: **PENDING** - Will train critic agent on dual-model dataset
+4. **⏳ RL Integration**: **PENDING** - Will integrate improved critic into RL training loop
+5. **⏳ End-to-End Evaluation**: **PENDING** - Will test complete ECR system with improved critic
+6. **Agent Training Status**: **ONLY CRITIC AGENT** needs training (main ECR model already trained)
 
 ## Current Execution Plan
 
-### Step 1: ✅ Full Dataset Scoring (IN PROGRESS)
-- **Job ID**: 4436448 (submitted)
-- **Dataset**: 56,355 conversation samples
-- **Output**: `llama2_scored_full_dataset.jsonl`
-- **Status**: Running on ALICE cluster
+### Step 1: ✅ Dual-Model Dataset Scoring (COMPLETED)
+- **Llama2-Chat**: 15,743 conversation samples → `llama2_scored_ultra_fast_merged_1_3.jsonl`
+- **Mistral7B-Instruct**: 16,716 conversation samples → `mistral7b_scored_ultra_fast_merged_1_3.jsonl`
+- **Status**: Both scoring jobs completed successfully
 
-### Step 2: 🔄 Retrain Critic on Full Dataset (PENDING)
-- **Input**: New `llama2_scored_full_dataset.jsonl`
-- **Expected**: Much better critic performance
-- **Timeline**: After scoring job completes
+### Step 2: ✅ Dataset Merging (COMPLETED)
+- **Input**: Combined dual-model scored datasets
+- **Output**: Unified dataset with both `llama2_scores` and `mistral7b_scores` fields
+- **Total Samples**: ~32,459 samples
 
-### Step 3: 🔄 Evaluate New Critic (PENDING)
+### Step 3: 🔄 Train Critic Agent on Dual-Model Dataset (PENDING)
+- **Input**: Combined dual-model dataset
+- **Expected**: Much better critic agent performance
+- **Agent Focus**: **ONLY CRITIC AGENT** needs training (main ECR model already trained)
+- **Timeline**: Ready to proceed immediately
+
+### Step 4: 🔄 Evaluate New Critic Agent (PENDING)
 - **Test**: Use improved test scripts
 - **Expected**: Meaningful quality distinctions
 - **Validation**: Real conversation data

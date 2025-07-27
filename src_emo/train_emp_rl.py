@@ -28,7 +28,7 @@ from model_gpt2 import PromptGPT2forCRS
 from model_prompt import KGPrompt
 
 # Import RL components
-from rl import RLConfig, PPOTrainer, CriticAgent, RewardCalculator
+from rl import RLConfig, CriticAgent, RewardCalculator, SimplePPOTrainer
 
 
 def parse_args():
@@ -209,23 +209,37 @@ def main():
             distinct_weight=args.distinct_weight,
             empathy_weight=args.empathy_weight,
             recommendation_weight=args.recommendation_weight,
+            device=device,
+            output_dir=os.path.join(args.output_dir, "rl_checkpoints")
+        )
+        # Lower checkpoint save frequency for short runs
+        rl_config.save_steps = 100  # Save every 100 steps for better checkpointing
+        
+        # Load critic model
+        if args.critic_pretrained_path:
+            logger.info(f"Loading critic model from {args.critic_pretrained_path}")
+            # Create a simple config for the critic
+            from config import Emo_List
+            critic_model = CriticAgent.load_model(
+                args.critic_pretrained_path, 
+                rl_config, 
+                tokenizer
+            )
+        else:
+            logger.warning("No critic model path provided, using policy model as critic")
+            critic_model = model
+        
+        # Initialize Simple PPO trainer
+        ppo_trainer = SimplePPOTrainer(
+            policy_model=model,
+            critic_model=critic_model,
+            tokenizer=tokenizer,
+            config=rl_config,
             device=device
         )
         
-        # Initialize PPO trainer
-        ppo_trainer = PPOTrainer(
-            config=rl_config,
-            policy_model=model,
-            tokenizer=tokenizer,
-            emotion_list=Emo_List,
-            train_dataset=train_dataset,
-            valid_dataset=valid_dataset,
-            output_dir=os.path.join(args.output_dir, "rl_checkpoints"),
-            critic_pretrained_path=args.critic_pretrained_path
-        )
-        
         logger.info("Starting RL training...")
-        ppo_trainer.train(num_epochs=1)  # RL training is step-based, not epoch-based
+        ppo_trainer.train(train_dataset=train_dataset, num_epochs=1)  # RL training is step-based, not epoch-based
         
     else:
         # Standard supervised training
@@ -279,7 +293,8 @@ def main():
     
     # Save final model
     if accelerator.is_local_main_process:
-        model.save_pretrained(args.output_dir)
+        # Fix tensor sharing issue by using safe_serialization=False
+        model.save_pretrained(args.output_dir, safe_serialization=False)
         tokenizer.save_pretrained(args.output_dir)
         logger.info(f"Model saved to {args.output_dir}")
 

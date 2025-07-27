@@ -16,12 +16,14 @@ This guide will walk you through implementing and using the RL enhancement for E
 - [ ] Integrate with existing ECR-main
 - [ ] Validate reward functions
 - [ ] Test training pipeline
+- [ ] Confirm RL model and checkpoint saving after retraining (NEW)
 
 ### Phase 3: Training and Evaluation 📊
 - [ ] Run baseline training
-- [ ] Run RL-enhanced training
+- [ ] Run RL-enhanced training (with fixed saving/checkpointing)
 - [ ] Compare results
 - [ ] Analyze improvements
+- [ ] Test RL-enhanced model (NEW)
 
 ### Phase 4: Optimization and Deployment 🚀
 - [ ] Hyperparameter tuning
@@ -40,13 +42,25 @@ cd ECR-main
 
 2. **Install additional dependencies**:
 ```bash
-pip install nltk wandb accelerate transformers torch
+pip install nltk wandb accelerate transformers torch bitsandbytes
 python -c "import nltk; nltk.download('punkt')"
 ```
 
 3. **Verify installation**:
 ```bash
 python -c "from src_emo.rl import RLConfig, PPOTrainer, CriticAgent, RewardCalculator; print('RL components imported successfully')"
+```
+
+4. **Set up model scoring systems**:
+```bash
+# Llama2 scoring (completed)
+python convert_and_score_full_dataset.py --input <input_file> --output <output_file>
+
+# Mistral7B scoring
+python src_emo/scoring/mistral7b_score_responses_ultra_fast.py --input <input_file> --output <output_file>
+
+# Note: DialoGPT-large was tested but found unsuitable for structured scoring
+# Mixtral8x7B-Instruct access is being requested for future use
 ```
 
 ### Step 2: Data Preparation
@@ -406,3 +420,18 @@ For additional support:
 ---
 
 **Good luck with your RL enhancement implementation!** 🚀 
+
+## 🚨 Recent Fixes
+- Fixed RL model saving issue (tensor sharing error) by using `safe_serialization=False`.
+- Lowered RL checkpoint save frequency to every 100 steps for better checkpointing.
+- Mixtral8x7B and DialoGPT-large were abandoned due to technical and hardware issues.
+
+## 🚨 Recent Major Change
+- The system now uses **Llama2-Chat as the ONLY backbone** for response generation (no DialoGPT).
+- All training, inference, and evaluation are aligned with the ECR paper's Llama2-Chat structure and prompt format.
+- Data: Llama2-annotated emotional data (`llama_train.json`, `llama_test.json`).
+
+## ⏩ Immediate Next Steps
+1. Retrain RL for at least 1 epoch to confirm model and checkpoint saving.
+2. Test the RL-enhanced model with a test/inference script.
+3. Update all documentation files to reflect the new status. 

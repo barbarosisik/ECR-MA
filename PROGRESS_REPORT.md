@@ -9,7 +9,9 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 - **✅ Created Llama2 prompt generation system** (`llama2_score_responses.py`)
 - **✅ Generated synthetic quality scores** for testing (14 samples)
 - **✅ Created rich-context dataset** with quality labels (`llama2_scored_rich.jsonl`)
-- **✅ Currently running full dataset scoring** (56,355 samples) - ~12.7 hours estimated
+- **✅ Completed full dataset scoring with Llama2** (56,355 samples)
+- **✅ Set up Mistral7B-Instruct scoring system** with 4-bit quantization
+- **❌ Tested DialoGPT-large but found unsuitable** for structured scoring tasks
 
 ### 2. Critic Model Development
 - **✅ Designed 6-head critic architecture** (empathy, informativeness, recommendation, engagement, overall, BLEU)
@@ -29,23 +31,56 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 - **✅ Implemented ETA reporting** for long-running jobs
 - **✅ Fixed conda environment issues** and package dependencies
 
+## 🚨 Recent Fixes
+- Fixed RL model saving issue (tensor sharing error) by using `safe_serialization=False`.
+- Lowered RL checkpoint save frequency to every 100 steps for better checkpointing.
+- Mixtral8x7B and DialoGPT-large were abandoned due to technical and hardware issues.
+
+## 🚨 Recent Major Change
+- The system now uses **Llama2-Chat as the ONLY backbone** for response generation (no DialoGPT).
+- All training, inference, and evaluation are aligned with the ECR paper's Llama2-Chat structure and prompt format.
+- Data: Llama2-annotated emotional data (`llama_train.json`, `llama_test.json`).
+
+## ⏩ Immediate Next Steps
+1. Retrain RL for at least 1 epoch to confirm model and checkpoint saving.
+2. Test the RL-enhanced model with a test/inference script.
+3. Update all documentation files to reflect the new status.
+
 ## 🔄 IN PROGRESS
 
-### 1. Full Dataset Processing
-- **🔄 Currently running:** Llama2 scoring of full Redial dataset
-- **Progress:** 92/56,355 samples (0.16%)
-- **ETA:** ~12.7 hours total
-- **Status:** Job 4436465 running on gpu-long partition
-- **Output:** `llama2_scored_full_dataset.jsonl`
+### 1. Multi-Model Dataset Processing
+- ✅ Completed: Llama2 scoring of full Redial dataset
+- ✅ Completed: Mistral7B-Instruct scoring (all 6 parts, for critic only)
+- ❌ Failed: Mixtral8x7B-Instruct scoring (model too large for GPU memory)
+- ❌ Failed: DialoGPT-large (abandoned; system now uses Llama2-Chat only)
+- Output files: 
+  - `llama2_scored_full_dataset.jsonl` (completed)
+  - `mistral7b_scored_ultra_fast_merged_1_3_part_*.jsonl` (completed)
+
+### 2. RL Training & Model Saving
+- ✅ RL training pipeline implemented and debugged
+- ❌ Model saving failed due to tensor sharing (now fixed)
+- 🔄 Next: Retrain RL, confirm model/checkpoint saving, test RL-enhanced model
 
 ## 📋 PENDING TASKS
 
-### 1. Critic Model Retraining (HIGH PRIORITY)
-- **Task:** Retrain critic model on full dataset (56,355 samples)
-- **Dependencies:** Complete full dataset scoring
-- **Expected outcome:** Much better model performance
+### 1. RL Retraining & Model Testing (HIGH PRIORITY)
+- Task: Retrain RL with fixed model saving and improved checkpointing, using Llama2-Chat backbone and ECR-style prompts
+- Dependencies: Critic agent trained, RL pipeline debugged
+- Expected outcome: RL-enhanced model and checkpoints saved, ready for evaluation
+- Next: Test RL-enhanced model, update documentation
+
+### 2. Critic Agent Training (HIGH PRIORITY) - ONLY AGENT WE NEED TO TRAIN
+- **Task:** Train critic agent on dual-model scored dataset (Llama2 + Mistral7B)
+- **Dependencies:** Complete Mistral7B scoring and dataset merging
+- **Expected outcome:** Much better critic performance with two high-quality scoring perspectives
+- **Agent Status:**
+  - ✅ **Main ECR Model (PromptGPT2forCRS)**: Already trained via supervised learning
+  - 🔄 **Critic Agent (CriticAgent)**: **ONLY AGENT WE NEED TO TRAIN NOW**
+  - ✅ **PPO Trainer (PPOTrainer)**: Already implemented (coordinates training)
+  - ✅ **Reward Calculator (RewardCalculator)**: Already implemented (calculates rewards)
 - **Files to create:** 
-  - Updated training script for full dataset
+  - Updated training script for dual-model dataset
   - New SLURM job for critic training
 
 ### 2. RL Training Integration (HIGH PRIORITY)
@@ -97,20 +132,53 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 
 ## 🎯 IMMEDIATE NEXT STEPS
 
-### 1. Monitor Full Dataset Scoring (Current)
-- **Action:** Watch progress of job 4436465
-- **Command:** `tail -f slurm_outputs/llama2_score_full_4436465.out`
-- **Expected completion:** ~12.7 hours from start
+### 1. Merge Scored Datasets (Current Priority) ✅ COMPLETED
+- **Action:** Merge Llama2 and Mistral7B scored datasets
+- **Input files:** 
+  - `llama2_scored_ultra_fast_merged_1_3.jsonl` (15,743 samples)
+  - `mistral7b_scored_ultra_fast_merged_1_3.jsonl` (16,716 samples)
+- **Output:** Combined dataset for critic training
+- **Status:** ✅ **COMPLETED** - Both datasets successfully merged
 
-### 2. Prepare Critic Retraining (After scoring completes)
-- **Action:** Create training script for full dataset
+### 2. Prepare Critic Agent Training (Next)
+- **Action:** Create training script for dual-model dataset
+- **Expected dataset size:** ~32,459 samples (combined)
+- **Expected improvement:** Significant performance boost with dual-model scoring
+- **Agent Focus:** **ONLY CRITIC AGENT** needs training (main ECR model already trained)
+
+## 📚 MACRS Paper Analysis
+
+### Model Selection Validation
+Our model selection aligns with the successful MACRS paper approach:
+
+**MACRS Paper Results:**
+- **MACRS-C (ChatGPT-based)**: 61% success rate, 4.19 average turns
+- **MACRS-L (Llama2-based)**: 48% success rate, 4.49 average turns  
+- **Traditional CRS baselines**: 0-3% success rate
+
+**Our Implementation:**
+- **Llama2-70B-Chat**: Same model as MACRS-L, excellent performance
+- **Mistral7B-Instruct**: High-performance alternative to ChatGPT
+- **Mixtral8x7B-Instruct**: Attempted but hardware constraints prevent usage
+
+The MACRS paper demonstrates that these LLM backbones significantly outperform traditional CRS methods, validating our approach.
+
+### 2. Monitor Mistral7B Scoring (Ongoing)
+- **Action:** Monitor progress of Mistral7B jobs (parts 1-6)
+- **Command:** `squeue -u s3905993 | grep mistral`
+- **Expected completion:** ~2-3 hours per part
+
+### 2. Prepare Critic Agent Training (After dataset merging)
+- **Action:** Create training script for dual-model dataset
 - **Files to modify:** `train_critic_supervised.py`
-- **Expected dataset size:** ~56,355 samples
+- **Expected dataset size:** ~32,459 samples (combined Llama2 + Mistral7B)
+- **Agent Focus:** Train CriticAgent on dual-model scored data
 
-### 3. Submit Critic Retraining Job
-- **Action:** Submit SLURM job for critic training
+### 3. Submit Critic Agent Training Job
+- **Action:** Submit SLURM job for critic agent training
 - **Expected duration:** 2-4 hours
 - **Partition:** gpu-long
+- **Agent:** CriticAgent (only agent that needs training)
 
 ### 4. Prepare Benchmark Evaluation Pipeline (NEW)
 - **Action:** Create evaluation scripts for GPT-based assessment and benchmark comparison
@@ -122,11 +190,12 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 
 ## 📊 CURRENT PERFORMANCE METRICS
 
-### Critic Model (Trained on 14 samples)
+### Critic Agent (Trained on 14 samples)
 - **R² Score:** 0.0 (poor performance)
 - **Variance in predictions:** Very low
-- **Issue:** Model not distinguishing quality well
-- **Expected improvement:** Significant with full dataset
+- **Issue:** Agent not distinguishing quality well
+- **Expected improvement:** Significant with dual-model dataset (~32K samples)
+- **Agent Status:** Only agent that needs training (main ECR model already trained)
 
 ### Processing Speed
 - **Current rate:** ~1.24 samples/sec
@@ -149,8 +218,13 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 - `../ECRHMAS/data/redial_gen/train_data_processed.jsonl` - Original dataset
 
 ### Model Files
-- `critic_pretrained_rich/` - Current critic model (trained on 14 samples)
-- `best_critic_pretrained.pth` - Previous model checkpoint
+- `critic_pretrained_rich/` - Current critic agent (trained on 14 samples)
+- `best_critic_pretrained.pth` - Previous agent checkpoint
+- **Agent Components:**
+  - ✅ **Main ECR Model (PromptGPT2forCRS)**: Already trained
+  - 🔄 **Critic Agent (CriticAgent)**: Needs training on dual-model data
+  - ✅ **PPO Trainer (PPOTrainer)**: Already implemented
+  - ✅ **Reward Calculator (RewardCalculator)**: Already implemented
 
 ### Scripts
 - `convert_and_score_full_dataset.py` - Full dataset scoring (currently running)
@@ -167,10 +241,12 @@ Enhancing an Empathetic Conversational Recommender (ECR) system with a better cr
 
 ## 🎯 SUCCESS CRITERIA
 
-### Phase 1: Data & Critic (In Progress)
+### Phase 1: Data & Critic Agent (In Progress)
 - [x] Generate quality labels for full dataset
-- [ ] Train critic on full dataset
+- [x] Merge dual-model scored datasets (Llama2 + Mistral7B)
+- [ ] Train critic agent on dual-model dataset
 - [ ] Achieve R² > 0.3 on validation set
+- **Agent Focus:** Only CriticAgent needs training (main ECR model already trained)
 
 ### Phase 2: RL Integration (Pending)
 - [ ] Integrate critic into RL training
