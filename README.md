@@ -2,7 +2,7 @@
 
 This repository contains the code for a modern, RL-enhanced Empathetic Conversational Recommender (ECR) system, with a focus on **LLM-based response evaluation, critic agent training, and reinforcement learning** for improved dialogue quality and recommendation realism.
 
-## 🚀 Features
+## Features
 
 - **LLM-Based Scoring:** Uses Llama2-Chat and Mistral7B-Instruct (for critic only; all generation is now Llama2-Chat).
 - **Critic Agent:** Trains a RoBERTa-based critic agent to predict multiple quality metrics for dialogue responses.
@@ -10,7 +10,7 @@ This repository contains the code for a modern, RL-enhanced Empathetic Conversat
 - **SLURM/Cluster Ready:** Includes scripts for large-scale scoring and training on GPU clusters (ALICE/DS-Lab).
 - **Comprehensive Evaluation:** Scripts for visualization, metric analysis, and benchmark comparison.
 
-## 📦 Requirements
+## Requirements
 
 - Python >= 3.8
 - PyTorch >= 1.8
@@ -34,7 +34,7 @@ python -c "import nltk; nltk.download('punkt')"
   - [Model Checkpoints](https://drive.google.com/file/d/1uBtcqbQByVrrJ1hEwk2dvsAOxuvEgE19/view?usp=sharing)
 - Place data in `src_emo/data/emo_data/` and models in `src_emo/data/saved/`.
 
-## 🚨 Recent Major Change
+## Recent Major Change
 - The system now uses **Llama2-Chat as the ONLY backbone** for response generation (no DialoGPT).
 - All training, inference, and evaluation are aligned with the ECR paper's Llama2-Chat structure and prompt format.
 - Data: Llama2-annotated emotional data (`llama_train.json`, `llama_test.json`).
@@ -57,26 +57,26 @@ python src_emo/scoring/mistral7b_score_responses_ultra_fast.py --input <input_fi
 
 **Note:** Mixtral8x7B-Instruct was attempted but requires GPU memory beyond available resources (46.7B parameters vs 10.57 GiB available).
 
-## 🚨 Recent Fixes
+## Recent Fixes
 - Fixed RL model saving issue (tensor sharing error) by using `safe_serialization=False`.
 - Lowered RL checkpoint save frequency to every 100 steps for better checkpointing.
 - Mixtral8x7B and DialoGPT-large were abandoned due to technical and hardware issues.
 
-## ⏩ Immediate Next Steps
+## Immediate Next Steps
 1. Retrain RL for at least 1 epoch to confirm model and checkpoint saving.
 2. Test the RL-enhanced model with a test/inference script.
 3. Update all documentation files to reflect the new status.
 
 ## Current Status
 
-### ✅ Completed
+### Completed
 - **Llama2-70B-Chat scoring**: All 6 parts completed successfully
 - **Mistral7B-Instruct scoring**: All 6 parts completed successfully  
 - **Total scored samples**: 16,716 (2,786 per part × 6 parts)
 - **Critic agent trained on merged dual-model data**
 - **RL training pipeline implemented and debugged**
 
-### 📋 Next Steps
+### Next Steps
 1. **Retrain RL** with fixed model saving and improved checkpointing
 2. **Test RL-enhanced model**
 3. **Update documentation and prepare final results**
@@ -117,7 +117,7 @@ python eval_critic_visualize.py
 python summarize_critic_evaluation.py
 ```
 
-## 📝 Project Structure
+## Project Structure
 
 ```
 ECR-main/
@@ -133,12 +133,12 @@ ECR-main/
 └── ... (see .gitignore for excluded data/models)
 ```
 
-## 📊 Documentation
+## Documentation
 
 - See `IMPLEMENTATION_GUIDE.md` and `RL_TRAINING_GUIDE.md` for detailed instructions.
 - `CRITIC_EVALUATION_REPORT.md` and `PROGRESS_REPORT.md` for project progress and evaluation results.
 
-## 📚 Acknowledgements
+## Acknowledgements
 
 - Built on top of [UniCRS](https://github.com/RUCAIBox/UniCRS) and the original ECR-main codebase.
 - LLM scoring inspired by recent RecSys and NLP research.
