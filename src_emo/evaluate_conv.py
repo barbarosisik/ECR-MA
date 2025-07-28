@@ -17,6 +17,21 @@ class ConvEvaluator:
             self.log_file = open(log_file_path, 'w', buffering=1)
             self.log_cnt = 0
 
+    def reset_metric(self):
+        """Reset all evaluation metrics to initial state"""
+        self.metric = {
+            'bleu@1': 0,
+            'bleu@2': 0,
+            'bleu@3': 0,
+            'bleu@4': 0,
+            'dist@1': set(),
+            'dist@2': set(),
+            'dist@3': set(),
+            'dist@4': set(),
+            'item_ratio': 0
+        }
+        self.sent_cnt = 0
+
     def evaluate(self, preds, labels, log=False, context = None):
         decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=False)
         decoded_preds = [decoded_pred.replace('<pad>', '').replace('<|endoftext|>', '') for decoded_pred in
