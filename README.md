@@ -41,7 +41,7 @@ python -c "import nltk; nltk.download('punkt')"
 - Training: Fine-tune Llama2-Chat for emotion-aligned response generation using emotional reviews and knowledge-augmented prompts.
 - Evaluation: Use subjective metrics (emotional intensity, persuasiveness, informativeness, lifelikeness) and LLM-based scoring if possible.
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. LLM-Based Scoring
 
