@@ -1,0 +1,90 @@
+{
+  "metrics": {
+    "bleu_1": 2.247676205362575e-233,
+    "distinct_1": 0.5904761904761905,
+    "distinct_2": 0.22,
+    "num_samples": 50
+  },
+  "samples": [
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch <movie>",
+      "reference": "You should watch <movie>",
+      "generated": " castle and the Big Lebowski.",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 1.0
+    },
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch Police Academy (1984) Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) Yes <movie> is very funny and so is <movie>",
+      "reference": "Yes <movie> is very funny and so is <movie>",
+      "generated": "",
+      "bleu": 0,
+      "distinct_1": 0.0,
+      "distinct_2": 0.0
+    },
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch Police Academy (1984) Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985) It sounds like I need to check them out yes you will enjoy them",
+      "reference": "yes you will enjoy them",
+      "generated": "force",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 0.0
+    },
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch Police Academy (1984) Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985) It sounds like I need to check them out yes you will enjoy them I appreciate your time. I will need to check those out. Are there any others you would recommend? yes <movie>",
+      "reference": "yes <movie>",
+      "generated": ".",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 0.0
+    },
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch Police Academy (1984) Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985) It sounds like I need to check them out yes you will enjoy them I appreciate your time. I will need to check those out. Are there any others you would recommend? yes Lethal Weapon (1987) Thank you i will watch that too and also <movie>",
+      "reference": "and also <movie>",
+      "generated": " death squad",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 1.0
+    },
+    {
+      "context": "Hi I am looking for a movie like Super Troopers (2001) You should watch Police Academy (1984) Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985) It sounds like I need to check them out yes you will enjoy them I appreciate your time. I will need to check those out. Are there any others you would recommend? yes Lethal Weapon (1987) Thank you i will watch that too and also Beverly Hills Cop (1984) Thanks for the suggestions. you are welcome and also <movie>",
+      "reference": "you are welcome and also <movie>",
+      "generated": "selves.",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 0.0
+    },
+    {
+      "context": " Hello!",
+      "reference": "Hello!",
+      "generated": " there's a skeleton",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 1.0
+    },
+    {
+      "context": " Hello! Hello! What kind of movies do you like?",
+      "reference": "What kind of movies do you like?",
+      "generated": ", Hello!",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 1.0
+    },
+    {
+      "context": " Hello! Hello! What kind of movies do you like? I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984) Oh, you like scary movies? I recently watched <movie>",
+      "reference": "Oh, you like scary movies? I recently watched <movie>",
+      "generated": ".",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 0.0
+    },
+    {
+      "context": " Hello! Hello! What kind of movies do you like? I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984) Oh, you like scary movies? I recently watched Happy Death Day (2017) I also enjoyed watching The Last House on the Left (1972) It was really good for a new \"scary movie\"",
+      "reference": "It was really good for a new \"scary movie\"",
+      "generated": "inger.",
+      "bleu": 0,
+      "distinct_1": 1.0,
+      "distinct_2": 0.0
+    }
+  ]
+}

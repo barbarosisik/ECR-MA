@@ -85,6 +85,6 @@ trainer.train()
 
 # Save final LoRA adapters and tokenizer
 print(f"Saving LoRA adapters and tokenizer to {OUTPUT_DIR} ...")
-model.save_pretrained(OUTPUT_DIR)
+model.save_pretrained(OUTPUT_DIR, safe_serialization=False)
 tokenizer.save_pretrained(OUTPUT_DIR)
 print('Training complete!') 

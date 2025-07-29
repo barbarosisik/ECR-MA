@@ -1,0 +1,166 @@
+{
+  "metrics": {
+    "bleu_1": 0.003588639375050346,
+    "bleu_1_std": 0.006893779266837797,
+    "distinct_1": 0.8050645124812353,
+    "distinct_1_std": 0.09276217368150516,
+    "distinct_2": 0.9482847005952856,
+    "distinct_2_std": 0.04881572353812649,
+    "num_samples": 10,
+    "avg_response_length": 72.6
+  },
+  "samples": [
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)"
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST]",
+      "reference": "You should watch <movie>",
+      "generated": "Great! Super Troopers (2001) is a cult classic comedy film that has gained a huge following over the years. Here are some movies that are similar in tone, style, and humor that you might enjoy:\n\n1. Zoolander (2001) - Another classic comedy from the early 2000s, Zoolander follows a dim-witted male model who becomes embroiled in a plot to assassinate the Prime Minister of Malaysia.\n2. Pineapple Express (2008) - A stoner action-comedy film, Pineapple Express stars Seth Rogen as a process server who witnesses a murder and goes on",
+      "bleu": 0,
+      "distinct_1": 0.7777777777777778,
+      "distinct_2": 0.9775280898876404
+    },
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)",
+        "You should watch Police Academy (1984)",
+        "Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999)"
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST] You should watch Police Academy (1984)[INST] Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) [/INST]",
+      "reference": "Yes <movie> is very funny and so is <movie>",
+      "generated": "Yes, Police Academy (1984) is a great comedy movie that is similar to Super Troopers (2001). Both movies are known for their slapstick humor, absurd situations, and memorable characters. Here are some other recommendations that you might enjoy:\n\n1. Stripes (1981) - This classic comedy stars Bill Murray and Harold Ramis as two friends who join the army to escape their mundane lives, but find themselves in a series of absurd situations.\n2. Animal House (1978) - Another classic comedy, Animal House is a raunchy and hilarious film about a group of misfits who",
+      "bleu": 0.00253029005308516,
+      "distinct_1": 0.7978723404255319,
+      "distinct_2": 0.978494623655914
+    },
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)",
+        "You should watch Police Academy (1984)",
+        "Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999)",
+        "Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)",
+        "It sounds like I need to check them out"
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST] You should watch Police Academy (1984)[INST] Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) [/INST] Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)[INST] It sounds like I need to check them out [/INST]",
+      "reference": "yes you will enjoy them",
+      "generated": "Yes, definitely! They are both classic comedies that are similar in tone and style to Super Troopers (2001). Here are some other recommendations that might be up your alley:\n\n1. Starsky & Hutch (1991) - This one is a classic '80s buddy cop comedy with a lot of great characters and humor.\n2. Beverly Hills Cop (1984) - This one is a classic action-comedy with a lot of great one-liners and a memorable performance from Eddie Murphy.\n3. Hot Fuzz (2007) - This one is a more modern take on the buddy cop",
+      "bleu": 0,
+      "distinct_1": 0.7204301075268817,
+      "distinct_2": 0.8478260869565217
+    },
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)",
+        "You should watch Police Academy (1984)",
+        "Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999)",
+        "Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)",
+        "It sounds like I need to check them out",
+        "yes you will enjoy them",
+        "I appreciate your time. I will need to check those out. Are there any others you would recommend?"
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST] You should watch Police Academy (1984)[INST] Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) [/INST] Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)[INST] It sounds like I need to check them out [/INST] yes you will enjoy them[INST] I appreciate your time. I will need to check those out. Are there any others you would recommend? [/INST]",
+      "reference": "yes <movie>",
+      "generated": "Yes, here are some other movies that are similar to Super Troopers (2001):\n\n1. Zoolander (2001) - A comedy about a dim-witted male model who becomes embroiled in a plot to assassinate the Prime Minister of Malaysia.\n2. Tommy Boy (1995) - A comedy about a dim-witted son who takes over his father's auto parts business and goes on a road trip with his smart-but-hot friend to save the business.\n3. Dumb and Dumber To (2014) - The sequel to Dumb and Dumber (1994), following the adventures of",
+      "bleu": 0,
+      "distinct_1": 0.75,
+      "distinct_2": 0.9195402298850575
+    },
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)",
+        "You should watch Police Academy (1984)",
+        "Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999)",
+        "Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)",
+        "It sounds like I need to check them out",
+        "yes you will enjoy them",
+        "I appreciate your time. I will need to check those out. Are there any others you would recommend?",
+        "yes Lethal Weapon (1987)",
+        "Thank you i will watch that too"
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST] You should watch Police Academy (1984)[INST] Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) [/INST] Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)[INST] It sounds like I need to check them out [/INST] yes you will enjoy them[INST] I appreciate your time. I will need to check those out. Are there any others you would recommend? [/INST] yes Lethal Weapon (1987)[INST] Thank you i will watch that too [/INST]",
+      "reference": "and also <movie>",
+      "generated": "You're welcome! Lethal Weapon (1987) is a classic action-comedy movie that is similar to Super Troopers (2001) in terms of its blend of action, comedy, and police procedural elements. It stars Mel Gibson and Danny Glover as two detectives who work together to solve a case while dealing with their personal differences. It's a great movie that you might enjoy. Let me know if you need any other recommendations!",
+      "bleu": 0.0026348495048119725,
+      "distinct_1": 0.8695652173913043,
+      "distinct_2": 0.9852941176470589
+    },
+    {
+      "context": [
+        "Hi I am looking for a movie like Super Troopers (2001)",
+        "You should watch Police Academy (1984)",
+        "Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999)",
+        "Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)",
+        "It sounds like I need to check them out",
+        "yes you will enjoy them",
+        "I appreciate your time. I will need to check those out. Are there any others you would recommend?",
+        "yes Lethal Weapon (1987)",
+        "Thank you i will watch that too",
+        "and also Beverly Hills Cop (1984)",
+        "Thanks for the suggestions."
+      ],
+      "formatted_prompt": "[INST] Hi I am looking for a movie like Super Troopers (2001) [/INST] You should watch Police Academy (1984)[INST] Is that a great one? I have never seen it. I have seen American Pie I mean American Pie (1999) [/INST] Yes Police Academy (1984) is very funny and so is Police Academy 2: Their First Assignment (1985)[INST] It sounds like I need to check them out [/INST] yes you will enjoy them[INST] I appreciate your time. I will need to check those out. Are there any others you would recommend? [/INST] yes Lethal Weapon (1987)[INST] Thank you i will watch that too [/INST] and also Beverly Hills Cop (1984)[INST] Thanks for the suggestions. [/INST]",
+      "reference": "you are welcome and also <movie>",
+      "generated": "You're welcome! Beverly Hills Cop (1984) is a classic action-comedy movie that is similar to Super Troopers (2001) in terms of its blend of humor and action. If you enjoy 80s movies, you might also want to check out:\n\n1. Ghostbusters (1984) - a classic comedy movie with a similar blend of humor and supernatural elements.\n2. The Naked Gun: From the Files of Police Squad! (1988) - a parody movie that is similar in tone to Super Troopers.\n3. Dumb and Dumber (1994) -",
+      "bleu": 0.0028030624560832816,
+      "distinct_1": 0.6941176470588235,
+      "distinct_2": 0.8928571428571429
+    },
+    {
+      "context": [
+        ""
+      ],
+      "formatted_prompt": "[INST]  [/INST]",
+      "reference": "Hello!",
+      "generated": "I'm not sure I understand what you are saying with \"[INST]\". Could you explain?",
+      "bleu": 0,
+      "distinct_1": 0.9285714285714286,
+      "distinct_2": 1.0
+    },
+    {
+      "context": [
+        "",
+        "Hello!",
+        "Hello!"
+      ],
+      "formatted_prompt": "[INST]  [/INST] Hello![INST] Hello! [/INST]",
+      "reference": "What kind of movies do you like?",
+      "generated": "KAISA! *adjusts sunglasses* How can I help you today?",
+      "bleu": 0.023980296761827107,
+      "distinct_1": 1.0,
+      "distinct_2": 1.0
+    },
+    {
+      "context": [
+        "",
+        "Hello!",
+        "Hello!",
+        "What kind of movies do you like?",
+        "I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984)"
+      ],
+      "formatted_prompt": "[INST]  [/INST] Hello![INST] Hello! [/INST] What kind of movies do you like?[INST] I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984) [/INST]",
+      "reference": "Oh, you like scary movies? I recently watched <movie>",
+      "generated": "Great! Here are some movie recommendations based on your interest in A Nightmare on Elm Street (1984):\n\n1. Halloween (1978) - This classic horror movie is another iconic slasher film that you might enjoy.\n2. The Shining (1980) - Stanley Kubrick's adaptation of Stephen King's novel is a horror masterpiece that explores the themes of isolation and madness.\n3. Friday the 13th (1980) - Another classic horror movie that follows a group of teenagers who are stalked and killed by a masked killer at a summer camp.\n4.",
+      "bleu": 0.00205598610184581,
+      "distinct_1": 0.7727272727272727,
+      "distinct_2": 0.9655172413793104
+    },
+    {
+      "context": [
+        "",
+        "Hello!",
+        "Hello!",
+        "What kind of movies do you like?",
+        "I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984)",
+        "Oh, you like scary movies? I recently watched Happy Death Day (2017)",
+        "I also enjoyed watching The Last House on the Left (1972)"
+      ],
+      "formatted_prompt": "[INST]  [/INST] Hello![INST] Hello! [/INST] What kind of movies do you like?[INST] I am looking for a movie recommendation. When I was younger I really enjoyed the A Nightmare on Elm Street (1984) [/INST] Oh, you like scary movies? I recently watched Happy Death Day (2017)[INST] I also enjoyed watching The Last House on the Left (1972) [/INST]",
+      "reference": "It was really good for a new \"scary movie\"",
+      "generated": "Oh, interesting! I'm just an AI, I don't have personal preferences or opinions, but I can recommend some movies based on your tastes. Here are some other horror movies that you might enjoy:\n\n1. The Babadook (2014) - A psychological horror film about a mother and her son who are haunted by a terrifying entity.\n2. Get Out (2017) - A horror comedy film that explores themes of race and identity through a unique blend of humor and suspense.\n3. Hereditary (2018) - A psychological horror film about a family that is haunted by their own",
+      "bleu": 0.0018819088728501284,
+      "distinct_1": 0.7395833333333334,
+      "distinct_2": 0.9157894736842105
+    }
+  ]
+}

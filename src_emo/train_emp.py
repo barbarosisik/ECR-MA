@@ -332,9 +332,9 @@ if __name__ == '__main__':
 
             if valid_report[f'valid/{metric}'] * mode > best_metric * mode:
                 best_metric = valid_report[f'valid/{metric}']
-                model.save_pretrained(best_metric_dir)
+                model.save_pretrained(best_metric_dir, safe_serialization=False)
                 logger.info(f'new best model with {metric}')
             evaluator.log_cnt += 1
 
-        model.save_pretrained(args.output_dir)
+        model.save_pretrained(args.output_dir, safe_serialization=False)
         logger.info(f'save final model')

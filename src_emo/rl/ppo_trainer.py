@@ -58,31 +58,33 @@ class SimplePPOTrainer(nn.Module):
         self.global_step = 0
         
     def _compute_rewards(self, contexts: List[str], responses: List[str]) -> torch.Tensor:
-        """Compute rewards using the critic model."""
-        self.critic_model.eval()
-        
+        """Compute rewards using external metrics (BLEU, empathy, etc.)."""
         rewards = []
-        batch_size = 8  # Process in smaller batches to avoid OOM
         
-        for i in range(0, len(contexts), batch_size):
-            batch_contexts = contexts[i:i+batch_size]
-            batch_responses = responses[i:i+batch_size]
+        for ctx, resp in zip(contexts, responses):
+            # Compute external rewards based on response quality
+            reward = 0.0
             
-            with torch.no_grad():
-                # Use the critic's forward method with context and response lists
-                outputs = self.critic_model.forward(
-                    context=batch_contexts,
-                    responses=batch_responses
-                )
-                
-                # Extract values from the critic output
-                if 'values' in outputs:
-                    scores = outputs['values']
-                else:
-                    # Fallback
-                    scores = torch.tensor([0.5] * len(batch_contexts), device=self.device)
-                
-                rewards.extend(scores.cpu().numpy())
+            # Length reward (prefer reasonable length responses)
+            resp_words = resp.split()
+            if 10 <= len(resp_words) <= 50:
+                reward += 0.2
+            
+            # Content reward (prefer responses with some substance)
+            if len(resp_words) > 5:
+                reward += 0.3
+            
+            # Context relevance (simple check)
+            ctx_words = ctx.split()[:5]  # Take first 5 words of context
+            if any(word.lower() in resp.lower() for word in ctx_words):
+                reward += 0.2
+            
+            # Empathy indicators (simple keyword matching)
+            empathy_words = ['understand', 'feel', 'sorry', 'hope', 'help', 'support']
+            if any(word in resp.lower() for word in empathy_words):
+                reward += 0.3
+            
+            rewards.append(reward)
         
         return torch.tensor(rewards, dtype=torch.float32, device=self.device)
     
@@ -113,8 +115,9 @@ class SimplePPOTrainer(nn.Module):
         self.policy_model.train()
         
         # Tokenize context-response pairs
+        tokenized_pairs = [f"{ctx} {resp}" for ctx, resp in zip(contexts, responses)]
         inputs = self.tokenizer(
-            [f"{ctx} {resp}" for ctx, resp in zip(contexts, responses)],
+            tokenized_pairs,
             padding=True,
             truncation=True,
             max_length=self.config.max_length,
@@ -151,7 +154,7 @@ class SimplePPOTrainer(nn.Module):
     def _train_epoch(self, train_dataloader: DataLoader) -> Dict[str, float]:
         """Train for one epoch."""
         self.policy_model.train()
-        self.critic_model.eval()
+        # Note: critic will be set to train mode when needed during training
         
         total_policy_loss = 0.0
         total_critic_loss = 0.0
@@ -175,22 +178,28 @@ class SimplePPOTrainer(nn.Module):
             torch.nn.utils.clip_grad_norm_(self.policy_model.parameters(), self.config.max_grad_norm)
             self.policy_optimizer.step()
             
-            # Simple critic loss (MSE with rewards)
-            with torch.no_grad():
-                critic_outputs = self.critic_model.forward(
-                    context=contexts,
-                    responses=responses
-                )
-                
-                # Extract values from the critic output
-                if 'values' in critic_outputs:
-                    predicted_rewards = critic_outputs['values']
-                else:
-                    # Fallback
-                    predicted_rewards = torch.tensor([0.5] * len(contexts), device=self.device)
+            # Train critic to predict external rewards accurately
+            self.critic_model.train()
+            critic_outputs = self.critic_model.forward(
+                context=contexts,
+                responses=responses
+            )
             
-            # Critic loss (optional - just for monitoring)
-            critic_loss = F.mse_loss(predicted_rewards, rewards)
+            # Extract values from the critic output
+            if 'values' in critic_outputs:
+                predicted_values = critic_outputs['values']
+            else:
+                # Fallback
+                predicted_values = torch.tensor([0.5] * len(contexts), device=self.device)
+            
+            # Critic loss (MSE with external rewards as targets)
+            critic_loss = F.mse_loss(predicted_values, rewards)
+            
+            # Update critic
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.critic_model.parameters(), self.config.max_grad_norm)
+            self.critic_optimizer.step()
             
             total_policy_loss += policy_loss.item()
             total_critic_loss += critic_loss.item()
@@ -247,8 +256,28 @@ class SimplePPOTrainer(nn.Module):
     
     def _collate_fn(self, batch):
         """Custom collate function for the dataset."""
-        contexts = [item['context'] for item in batch]
-        responses = [item['resp'] for item in batch]  # Changed from 'response' to 'resp'
+        contexts = []
+        responses = []
+        
+        for item in batch:
+            # Decode context from token IDs to text
+            if isinstance(item['context'], list):
+                # Remove special tokens and decode
+                context_tokens = [token for token in item['context'] if token != self.tokenizer.pad_token_id and token != -100]
+                context_text = self.tokenizer.decode(context_tokens, skip_special_tokens=True)
+            else:
+                context_text = str(item['context'])
+            
+            # Decode response from token IDs to text
+            if isinstance(item['resp'], list):
+                # Remove special tokens and decode
+                resp_tokens = [token for token in item['resp'] if token != self.tokenizer.pad_token_id and token != -100]
+                resp_text = self.tokenizer.decode(resp_tokens, skip_special_tokens=True)
+            else:
+                resp_text = str(item['resp'])
+            
+            contexts.append(context_text)
+            responses.append(resp_text)
         
         return {
             'context': contexts,

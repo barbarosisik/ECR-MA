@@ -239,7 +239,7 @@ def main():
         )
         
         logger.info("Starting RL training...")
-        ppo_trainer.train(train_dataset=train_dataset, num_epochs=1)  # RL training is step-based, not epoch-based
+        ppo_trainer.train(train_dataset=train_dataset, num_epochs=args.num_train_epochs)  # Use the specified number of epochs
         
     else:
         # Standard supervised training
