@@ -147,7 +147,7 @@ ECR-main/
 
 ## Acknowledgements
 
-- Built on top of [UniCRS](https://github.com/RUCAIBox/UniCRS) and the original ECR-main codebase.
+- Built on top of [UniCRS](https://github.com/RUCAIBox/UniCRS) and the original [ECR](https://github.com/zxd-octopus/ECR) codebase.
 - LLM scoring inspired by recent RecSys and NLP research.
 - For academic use, please cite the original ECR paper and this repository.
 
